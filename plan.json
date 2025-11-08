@@ -1,0 +1,64 @@
+/*[Webhook Trigger (Form Submit)]
+      ↓
+[Set Data (Extract Name, Email, Topic)]
+      ↓
+[Airtable - Create Record]
+      ↓
+[Gmail - Send Confirmation Email]*/
+
+
+{
+  "name": "Client Intake & Task Creation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "client-intake",
+        "responseMode": "onReceived",
+        "responseData": "default"
+      },
+      "id": "Webhook1",
+      "name": "Webhook - Client Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "application": "Airtable",
+        "tableId": "tblClientRequests",
+        "fields": {
+          "Name": "={{$json[\"name\"]}}",
+          "Email": "={{$json[\"email\"]}}",
+          "Topic": "={{$json[\"topic\"]}}",
+          "Deadline": "={{$json[\"deadline\"]}}",
+          "Status": "New"
+        }
+      },
+      "id": "Airtable1",
+      "name": "Add Task to Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "yourcompany@gmail.com",
+        "toEmail": "={{$json[\"email\"]}}",
+        "subject": "We received your content request!",
+        "text": "Hey {{$json[\"name\"]}},\n\nThanks for your request on '{{$json[\"topic\"]}}'. Our team will assign a writer shortly.\n\n- Content Team"
+      },
+      "id": "Email1",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [800, 200]
+    }
+  ],
+  "connections": {
+    "Webhook - Client Form": { "main": [[ { "node": "Add Task to Airtable" } ]] },
+    "Add Task to Airtable": { "main": [[ { "node": "Send Confirmation Email" } ]] }
+  }
+}
+
+
