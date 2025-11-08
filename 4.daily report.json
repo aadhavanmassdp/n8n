@@ -1,0 +1,63 @@
+[Cron Trigger - Every Day 9PM]
+      ↓
+[Airtable - Count Tasks (Delivered, Pending)]
+      ↓
+[Google Sheets - Get Payment Data]
+      ↓
+[Slack - Send Daily Summary]
+{
+
+  code]\
+  
+  "name": "Daily Reporting",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerTimes": [{ "hour": 21, "minute": 0 }]
+      },
+      "id": "Cron1",
+      "name": "Daily Schedule",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "application": "Airtable",
+        "tableId": "tblClientRequests"
+      },
+      "id": "AirtableStats",
+      "name": "Fetch All Tasks",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const tasks = items.map(i => i.json);\nconst delivered = tasks.filter(t => t.Status === 'Delivered').length;\nconst pending = tasks.filter(t => t.Status !== 'Delivered').length;\nreturn [{ json: { delivered, pending } }];"
+      },
+      "id": "CodeStats",
+      "name": "Compute Stats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#reports",
+        "text": "📊 Daily Summary:\nDelivered: {{$json[\"delivered\"]}}\nPending: {{$json[\"pending\"]}}\nRevenue Updated in Sheet."
+      },
+      "id": "SlackReport",
+      "name": "Send Slack Report",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1100, 200]
+    }
+  ],
+  "connections": {
+    "Daily Schedule": { "main": [[ { "node": "Fetch All Tasks" } ]] },
+    "Fetch All Tasks": { "main": [[ { "node": "Compute Stats" } ]] },
+    "Compute Stats": { "main": [[ { "node": "Send Slack Report" } ]] }
+  }
+}
