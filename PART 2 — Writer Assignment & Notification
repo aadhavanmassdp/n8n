@@ -1,0 +1,73 @@
+[Airtable Trigger: New Task Added]
+      ↓
+[Airtable - Find Available Writer]
+      ↓
+[Airtable - Update Record with Writer]
+      ↓
+[Slack - Notify Writer]
+
+{
+  "name": "Writer Assignment & Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "trigger",
+        "application": "Airtable",
+        "tableId": "tblClientRequests",
+        "triggerOn": "newRecord"
+      },
+      "id": "AirtableTrigger",
+      "name": "New Task Added",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "application": "Airtable",
+        "tableId": "tblWriters",
+        "filters": "status='Available'",
+        "limit": 1
+      },
+      "id": "FindWriter",
+      "name": "Find Available Writer",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "application": "Airtable",
+        "tableId": "tblClientRequests",
+        "id": "={{$json[\"id\"]}}",
+        "fields": {
+          "Writer": "={{$node[\"Find Available Writer\"].json[\"fields\"][\"Name\"]}}",
+          "Status": "Assigned"
+        }
+      },
+      "id": "AssignWriter",
+      "name": "Assign Writer",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "channel": "#writers",
+        "text": "✍️ New Task Assigned: {{$json[\"Topic\"]}} to {{$node[\"Find Available Writer\"].json[\"fields\"][\"Name\"]}}"
+      },
+      "id": "SlackNotify",
+      "name": "Notify Writer",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1100, 200]
+    }
+  ],
+  "connections": {
+    "New Task Added": { "main": [[ { "node": "Find Available Writer" } ]] },
+    "Find Available Writer": { "main": [[ { "node": "Assign Writer" } ]] },
+    "Assign Writer": { "main": [[ { "node": "Notify Writer" } ]] }
+  }
+}
