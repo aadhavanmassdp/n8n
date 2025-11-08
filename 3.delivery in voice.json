@@ -1,0 +1,70 @@
+[Airtable Trigger: Status = Approved]
+      ↓
+[Google Drive - Generate Share Link]
+      ↓
+[Gmail - Send Final Delivery Email]
+      ↓
+[Google Sheets - Add Invoice Entry]
+code
+{
+  "name": "Delivery & Invoice Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "trigger",
+        "application": "Airtable",
+        "tableId": "tblClientRequests",
+        "triggerOn": "updatedRecord",
+        "filter": "Status='Approved'"
+      },
+      "id": "AirtableApproved",
+      "name": "Approved Task Trigger",
+      "type": "n8n-nodes-base.airtableTrigger",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "fileId": "={{$json[\"DocId\"]}}",
+        "options": { "role": "reader" }
+      },
+      "id": "DriveLink",
+      "name": "Generate Shareable Link",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 1,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "yourcompany@gmail.com",
+        "toEmail": "={{$json[\"Email\"]}}",
+        "subject": "Your Final Content Delivery 🎉",
+        "text": "Hi {{$json[\"Name\"]}},\n\nHere’s your final content: {{$node[\"Generate Shareable Link\"].json[\"webViewLink\"]}}.\n\nThank you for your order!"
+      },
+      "id": "GmailSend",
+      "name": "Send Delivery Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "InvoiceSheetID",
+        "range": "A:D",
+        "fields": ["Client Name", "Amount", "Date", "Status"],
+        "values": "={{[[$json[\"Name\"], $json[\"Amount\"], $now, 'Pending']]}}"
+      },
+      "id": "AddInvoice",
+      "name": "Add to Invoice Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 1,
+      "position": [1100, 200]
+    }
+  ],
+  "connections": {
+    "Approved Task Trigger": { "main": [[ { "node": "Generate Shareable Link" } ]] },
+    "Generate Shareable Link": { "main": [[ { "node": "Send Delivery Email" } ]] },
+    "Send Delivery Email": { "main": [[ { "node": "Add to Invoice Sheet" } ]] }
+  }
+}
